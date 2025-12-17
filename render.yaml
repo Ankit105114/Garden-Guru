@@ -1,0 +1,49 @@
+# Render Blueprint for GardenGuru
+
+# MongoDB Database Service
+databases:
+  - name: gardenguru-db
+    databaseName: gardenguru
+    user: gardenguru_user
+    plan: free
+
+# Backend Service
+services:
+  - type: web
+    name: gardenguru-backend
+    env: node
+    buildCommand: cd server && npm install
+    startCommand: cd server && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        fromDatabase:
+          name: gardenguru-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+    plan: free
+
+  # Frontend Service
+  - type: web
+    name: gardenguru-frontend
+    env: node
+    buildCommand: |
+      cd client
+      npm install
+      npm run build
+    staticPublishPath: "./client/dist"
+    routes:
+      - type: rewrite
+        source: "/*"
+        destination: "/index.html"
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          name: gardenguru-backend
+          type: web
+          property: url
+    plan: free
